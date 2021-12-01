@@ -1231,13 +1231,13 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         let needed_balance = U512::from(t.tx().value) + gas_cost_max;
 
         // avoid unaffordable transactions
-        let balance512 = U512::from(balance);
-        if balance512 < needed_balance {
-            return Err(ExecutionError::NotEnoughCash {
-                required: needed_balance,
-                got: balance512,
-            });
-        }
+        // let balance512 = U512::from(balance);
+        // if balance512 < needed_balance {
+        //     return Err(ExecutionError::NotEnoughCash {
+        //         required: needed_balance,
+        //         got: balance512,
+        //     });
+        // }
 
         let mut substate = Substate::from_access_list(&access_list);
 
@@ -1245,11 +1245,11 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         if !schedule.keep_unsigned_nonce || !t.is_unsigned() {
             self.state.inc_nonce(&sender)?;
         }
-        self.state.sub_balance(
-            &sender,
-            &U256::try_from(gas_cost_effective).expect("Total cost (value + gas_cost_effective) is lower than max allowed balance (U256); gas_cost has to fit U256; qed"),
-            &mut substate.to_cleanup_mode(&schedule),
-        )?;
+        // self.state.sub_balance(
+        //     &sender,
+        //     &U256::try_from(gas_cost_effective).expect("Total cost (value + gas_cost_effective) is lower than max allowed balance (U256); gas_cost has to fit U256; qed"),
+        //     &mut substate.to_cleanup_mode(&schedule),
+        // )?;
 
         let (result, output) = match t.tx().action {
             Action::Create => {
@@ -1507,27 +1507,28 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             gas_left.overflowing_mul(t.effective_gas_price(self.info.base_fee));
         let (fees_value, overflow_2) =
             gas_used.overflowing_mul(t.effective_gas_price(self.info.base_fee));
-        if overflow_1 || overflow_2 {
-            return Err(ExecutionError::TransactionMalformed(
-                "U256 Overflow".to_string(),
-            ));
-        }
+        // if overflow_1 || overflow_2 {
+        //     return Err(ExecutionError::TransactionMalformed(
+        //         "U256 Overflow".to_string(),
+        //     ));
+        // }
 
         // Up until now, fees_value is calculated for each type of transaction based on their gas prices
         // Now, if eip1559 is activated, burn the base fee
         // miner only receives the inclusion fee; note that the base fee is not given to anyone (it is burned)
-        let burnt_fee = if schedule.eip1559 && !t.has_zero_gas_price() {
-            let (fee, overflow_3) =
-                gas_used.overflowing_mul(self.info.base_fee.unwrap_or_default());
-            if overflow_3 {
-                return Err(ExecutionError::TransactionMalformed(
-                    "U256 Overflow".to_string(),
-                ));
-            }
-            fee
-        } else {
-            U256::from(0)
-        };
+        let burnt_fee = U256::from(0);
+        // if schedule.eip1559 && !t.has_zero_gas_price() {
+        //     let (fee, overflow_3) =
+        //         gas_used.overflowing_mul(self.info.base_fee.unwrap_or_default());
+        //     if overflow_3 {
+        //         return Err(ExecutionError::TransactionMalformed(
+        //             "U256 Overflow".to_string(),
+        //         ));
+        //     }
+        //     fee
+        // } else {
+        //     U256::from(0)
+        // };
 
         let fees_value = fees_value.saturating_sub(burnt_fee);
 
@@ -1541,18 +1542,18 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             sender
         );
         // Below: NoEmpty is safe since the sender must already be non-null to have sent this transaction
-        self.state
-            .add_balance(&sender, &refund_value, CleanupMode::NoEmpty)?;
+        // self.state
+        //     .add_balance(&sender, &refund_value, CleanupMode::NoEmpty)?;
         trace!(
             "exec::finalize: Compensating author: fees_value={}, author={}\n",
             fees_value,
             &self.info.author
         );
-        self.state.add_balance(
-            &self.info.author,
-            &fees_value,
-            substate.to_cleanup_mode(&schedule),
-        )?;
+        // self.state.add_balance(
+        //     &self.info.author,
+        //     &fees_value,
+        //     substate.to_cleanup_mode(&schedule),
+        // )?;
 
         if burnt_fee > U256::from(0)
             && self.machine.params().eip1559_fee_collector.is_some()
