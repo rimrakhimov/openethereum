@@ -634,10 +634,16 @@ impl TypedTransaction {
 
     pub fn effective_gas_price(&self, block_base_fee: Option<U256>) -> U256 {
         match self {
-            Self::EIP1559Transaction(tx) => min(
-                self.tx().gas_price,
-                tx.max_priority_fee_per_gas + block_base_fee.unwrap_or_default(),
-            ),
+            Self::EIP1559Transaction(tx) => {
+                let (v2, overflow) = tx
+                    .max_priority_fee_per_gas
+                    .overflowing_add(block_base_fee.unwrap_or_default());
+                if overflow {
+                    self.tx().gas_price
+                } else {
+                    min(self.tx().gas_price, v2)
+                }
+            }
             Self::AccessList(_) => self.tx().gas_price,
             Self::Legacy(_) => self.tx().gas_price,
         }
