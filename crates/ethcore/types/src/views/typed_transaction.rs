@@ -129,10 +129,15 @@ impl<'a> TypedTransactionView<'a> {
                         .rlp
                         .val_at(2);
 
-                min(
-                    self.gas_price(),
-                    max_priority_fee_per_gas + block_base_fee.unwrap_or_default(),
-                )
+                let (v2, overflow) = max_priority_fee_per_gas.overflowing_add(block_base_fee.unwrap_or_default());
+                if overflow {
+                    self.gas_price()
+                } else {
+                    min(
+                        self.gas_price(),
+                        v2,
+                    )
+                }
             }
         }
     }

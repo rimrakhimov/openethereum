@@ -634,10 +634,17 @@ impl TypedTransaction {
 
     pub fn effective_gas_price(&self, block_base_fee: Option<U256>) -> U256 {
         match self {
-            Self::EIP1559Transaction(tx) => min(
-                self.tx().gas_price,
-                tx.max_priority_fee_per_gas + block_base_fee.unwrap_or_default(),
-            ),
+            Self::EIP1559Transaction(tx) => {
+                let (v2, overflow) = tx.max_priority_fee_per_gas.overflowing_add(block_base_fee.unwrap_or_default());
+                if overflow {
+                    self.tx().gas_price
+                } else {
+                    min(
+                        self.tx().gas_price,
+                        v2,
+                    )
+                }
+            },
             Self::AccessList(_) => self.tx().gas_price,
             Self::Legacy(_) => self.tx().gas_price,
         }
@@ -1232,6 +1239,38 @@ mod tests {
             assert!(true, "encoded/decoded tx differs from original");
         }
     }
+
+    // #[test]
+    // fn panic_too_great_max_priority_fee() {
+    //     use self::publickey::{Generator, Random};
+    //     let key = Random.generate();
+    //     let gas_price = U256::from(340282366920938463463374607431768211455u128)
+    //         * U256::from(340282366920938463463374607431768211455u128)
+    //         + U256::from(340282366920938463463374607431768211455u128)
+    //         + U256::from(340282366920938463463374607431768211455u128);
+    //     let t = TypedTransaction::EIP1559Transaction(EIP1559TransactionTx {
+    //         transaction: AccessListTx::new(
+    //             Transaction {
+    //                 action: Action::Create,
+    //                 nonce: U256::from(42),
+    //                 gas_price,
+    //                 gas: U256::from(50_000),
+    //                 value: U256::from(1),
+    //                 data: b"Hello!".to_vec(),
+    //             },
+    //             vec![
+    //                 (
+    //                     H160::from_low_u64_be(10),
+    //                     vec![H256::from_low_u64_be(102), H256::from_low_u64_be(103)],
+    //                 ),
+    //                 (H160::from_low_u64_be(400), vec![]),
+    //             ],
+    //         ),
+    //         max_priority_fee_per_gas: gas_price,
+    //     })
+    //     .sign(&key.secret(), Some(69));
+    //     let _ = t.transaction.effective_gas_price(Some(124.into()));
+    // }
 
     #[test]
     fn should_encode_decode_eip1559_tx() {

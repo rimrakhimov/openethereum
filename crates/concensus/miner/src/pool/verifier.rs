@@ -352,30 +352,30 @@ impl<C: Client> txpool::Verifier<Transaction>
 
         let (full_gas_price, overflow_1) = gas_price.overflowing_mul(transaction.tx().gas);
         let (cost, overflow_2) = transaction.tx().value.overflowing_add(full_gas_price);
-        if overflow_1 || overflow_2 {
-            trace!(
-                target: "txqueue",
-                "[{:?}] Rejected tx, price overflow",
-                hash
-            );
-            bail!(transaction::Error::InsufficientBalance {
-                cost: U256::max_value(),
-                balance: account_details.balance,
-            });
-        }
-        if account_details.balance < cost {
-            debug!(
-                target: "txqueue",
-                "[{:?}] Rejected tx with not enough balance: {} < {}",
-                hash,
-                account_details.balance,
-                cost,
-            );
-            bail!(transaction::Error::InsufficientBalance {
-                cost: cost,
-                balance: account_details.balance,
-            });
-        }
+        // if overflow_1 || overflow_2 {
+        //     trace!(
+        //         target: "txqueue",
+        //         "[{:?}] Rejected tx, price overflow",
+        //         hash
+        //     );
+        //     bail!(transaction::Error::InsufficientBalance {
+        //         cost: U256::max_value(),
+        //         balance: account_details.balance,
+        //     });
+        // }
+        // if account_details.balance < cost {
+        //     debug!(
+        //         target: "txqueue",
+        //         "[{:?}] Rejected tx with not enough balance: {} < {}",
+        //         hash,
+        //         account_details.balance,
+        //         cost,
+        //     );
+        //     bail!(transaction::Error::InsufficientBalance {
+        //         cost: cost,
+        //         balance: account_details.balance,
+        //     });
+        // }
 
         if transaction.tx().nonce < account_details.nonce {
             debug!(
